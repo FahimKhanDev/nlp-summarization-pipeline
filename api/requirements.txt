@@ -1,3 +1,17 @@
+# ============================================================================
+# API Dependencies for NLP Summarization Pipeline
+# ============================================================================
+# This file contains all required packages for the FastAPI-based REST API
+# that serves pre-trained NLP summarization models (BART, PEGASUS, T5).
+#
+# Key dependencies:
+# - FastAPI: Modern web framework for building the REST API
+# - Uvicorn: ASGI server for running the application
+# - Pydantic: Data validation and serialization
+# - Transformers: Hugging Face transformers library for NLP models
+# - Torch: PyTorch deep learning framework
+# ============================================================================
+
 fastapi==0.111.0
 uvicorn[standard]==0.29.0
 pydantic==2.7.1
