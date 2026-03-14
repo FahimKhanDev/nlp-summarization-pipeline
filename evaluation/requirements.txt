@@ -1,3 +1,5 @@
+# for docker to get the right packages
+
 rouge-score==0.1.2
 transformers==4.41.0
 torch==2.3.0
