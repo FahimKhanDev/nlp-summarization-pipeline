@@ -1,0 +1,82 @@
+version: "3.9"
+
+services:
+
+  # ─────────────────────────────────────────
+  # Data Pipeline (Prefect + HuggingFace datasets)
+  # ─────────────────────────────────────────
+  pipeline:
+    build:
+      context: ./pipeline
+      dockerfile: Dockerfile
+    container_name: nlp-pipeline
+    environment:
+      - MAX_SAMPLES=${MAX_SAMPLES:-50000}
+      - INGEST_BATCH_SIZE=${INGEST_BATCH_SIZE:-1000}
+      - MIN_TRAIN_SIZE=${MIN_TRAIN_SIZE:-1000}
+      - PREFECT_API_URL=${PREFECT_API_URL:-}
+    volumes:
+      - pipeline-data:/app/data
+      - ./pipeline:/app
+    command: python flow.py
+    profiles:
+      - pipeline
+
+  # ─────────────────────────────────────────
+  # Inference API (FastAPI + Uvicorn)
+  # ─────────────────────────────────────────
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: nlp-api
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - model-store:/models
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+
+  # ─────────────────────────────────────────
+  # Evaluation Runner (run once, then exits)
+  # ─────────────────────────────────────────
+  evaluation:
+    build:
+      context: ./evaluation
+      dockerfile: Dockerfile
+    container_name: nlp-eval
+    environment:
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - pipeline-data:/data
+      - model-store:/models
+      - ./evaluation:/app
+    command: >
+      python evaluate.py
+      --model_dir /models
+      --test_data /data/processed/test.csv
+      --output_json /app/results.json
+    profiles:
+      - eval
+    depends_on:
+      - api
+
+volumes:
+  pipeline-data:
+    driver: local
+  model-store:
+    driver: local
