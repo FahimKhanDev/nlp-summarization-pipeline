@@ -1,4 +1,5 @@
 # for docker to get the right packages
+# need to add clear comments - work
 
 rouge-score==0.1.2
 transformers==4.41.0
